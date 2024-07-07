@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Register/Login Elements Scraper</title>
+        <!-- Bootstrap CSS -->
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h2 class="mb-4">Register/Login Elements Scraper</h2>
+
+            <form id="scrapeForm">
+                <div class="mb-3">
+                    <label for="urlInput" class="form-label">Enter URL:</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="urlInput"
+                        placeholder="https://example.com/login"
+                        required
+                    />
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="scrapeAllElements"
+                    />
+                    <label class="form-check-label" for="scrapeAllElements">
+                        Scrape all input elements
+                    </label>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-dark"
+                    onclick="scrapeUrl()"
+                >
+                    Scrape
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-dark"
+                    onclick="clearResult()"
+                >
+                    Clear
+                </button>
+            </form>
+
+            <div id="result" class="mt-5">
+                <div
+                    id="emailDiv"
+                    class="input-group mb-3"
+                    style="display: none"
+                >
+                    <span class="input-group-text fw-bold">Email:</span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="emailElement"
+                        disabled
+                    />
+                    <button
+                        class="btn btn-dark"
+                        onclick="copyElements('emailElement')"
+                    >
+                        Copy
+                    </button>
+                </div>
+                <div
+                    id="usernameDiv"
+                    class="input-group mb-3"
+                    style="display: none"
+                >
+                    <span class="input-group-text fw-bold">Username:</span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="usernameElement"
+                        disabled
+                    />
+                    <button
+                        class="btn btn-dark"
+                        onclick="copyElements('usernameElement')"
+                    >
+                        Copy
+                    </button>
+                </div>
+                <div
+                    id="passwordDiv"
+                    class="input-group mb-3"
+                    style="display: none"
+                >
+                    <span class="input-group-text fw-bold">Password:</span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="passwordElement"
+                        disabled
+                    />
+                    <button
+                        class="btn btn-dark"
+                        onclick="copyElements('passwordElement')"
+                    >
+                        Copy
+                    </button>
+                </div>
+
+                <div id="allInputElementsContainer"></div>
+            </div>
+
+            <div
+                class="position-absolute top-50 start-50 translate-middle"
+                id="loader"
+                style="visibility: hidden"
+            >
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bootstrap JS and Popper.js -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            async function copyElements(id) {
+                const elementToCopyValue = document.getElementById(id);
+
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(elementToCopyValue.value);
+                } else {
+                    elementToCopyValue.select();
+                    document.execCommand("copy");
+                }
+            }
+
+            function scrapeUrl() {
+                // Get the URL from the input field
+                const urlToScrape = document.getElementById("urlInput").value;
+                const scrapeAllElements =
+                    document.getElementById("scrapeAllElements").checked;
+                document.getElementById("loader").style = "visibility: visible";
+
+                // Make a POST request with the URL in the body
+                fetch("http://localhost:3000/scrape", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ urlToScrape, scrapeAllElements }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.email) {
+                            document.getElementById("emailDiv").style =
+                                "display: blocks";
+                            document.getElementById(
+                                "emailElement"
+                            ).value = `${data.email}`;
+                        }
+                        if (data.username) {
+                            document.getElementById("usernameDiv").style =
+                                "display: blocks";
+                            document.getElementById(
+                                "usernameElement"
+                            ).value = `${data.username}`;
+                        }
+                        if (data.password) {
+                            document.getElementById("passwordDiv").style =
+                                "display: blocks";
+                            document.getElementById(
+                                "passwordElement"
+                            ).value = `${data.password}`;
+                        }
+                        if (data.allInputElements) {
+                            const container = document.getElementById("allInputElementsContainer");
+                            
+                            for (let i = 1; i <= data.allInputElements.length; i++) {
+                                const inputDiv = document.createElement("div");
+                                inputDiv.className = "input-group mb-3";
+                                inputDiv.id = `allInputElement${i}`;
+
+                                const inputElement =
+                                    document.createElement("input");
+
+                                inputElement.type = "text";
+                                inputElement.id = `inputName${i}`;
+                                inputElement.name = `inputName${i}`;
+                                inputElement.className = "form-control";
+                                inputElement.disabled = true;
+                                inputElement.value = `${
+                                    data.allInputElements[i - 1]
+                                }`;
+
+                                const copyButton =
+                                    document.createElement("button");
+                                copyButton.className = "btn btn-dark";
+                                copyButton.onclick = () =>
+                                    copyElements(`inputName${i}`);
+                                copyButton.innerText = "Copy";
+
+                                inputDiv.appendChild(inputElement);
+                                inputDiv.appendChild(copyButton);
+                                container.appendChild(inputDiv);
+                            }
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    })
+                    .finally(() => {
+                        document.getElementById("loader").style =
+                            "visibility: hidden";
+                    });
+            }
+
+            function clearResult() {
+                document.getElementById("emailDiv").style = "display: none";
+                document.getElementById("emailElement").value = "";
+                document.getElementById("usernameDiv").style = "display: none";
+                document.getElementById("usernameDiv").value = "";
+                document.getElementById("passwordDiv").style = "display: none";
+                document.getElementById("passwordDiv").value = "";
+                document.getElementById("allInputElementsContainer").innerHTML = "";
+            }
+        </script>
+    </body>
+</html>
